@@ -1,0 +1,14 @@
+b<-'.';out<-file.path(b,'全元素谱复核_20261118');.libPaths(c(file.path(b,'TB_metabolome_exposome_20261115_2130/analysis_MWAS_ExWAS/Rlib'),.libPaths()));library(haven)
+o<-readRDS(file.path(b,'NHANES_TB_Stage3_Inference_Audit_20261116/数据/rebuilt_private.rds'));a<-o$data
+lab<-file.path(b,'NHANES离线数据库/nhanes1999-2020数据合集/2011-2012/Laboratory')
+pat<-'copper|selenium|zinc|iron|manganese|molybdenum|cobalt|chromium|nickel|iodine|magnesium|calcium|phosphorus|cadmium|lead|mercury|arsen|antimony|barium|cesium|strontium|thallium|tungsten|uranium|tin,|sodium|potassium|chloride|ferritin|transferrin'
+inventory<-list();nf<-0
+for(f in list.files(lab,pattern='\\.xpt$',full.names=TRUE)){d<-read_xpt(f,n_max=1);nf<-nf+1
+ for(v in names(d)){l<-attr(d[[v]],'label');if(is.null(l))l<-'';if(grepl(pat,l,ignore.case=TRUE)){inventory[[length(inventory)+1]]<-data.frame(source=basename(f),variable=v,label=l,in_rebuilt=v%in%names(a),is_unit_duplicate=grepl('^LBD.*SI$',v),is_comment_code=grepl('comment',l,ignore.case=TRUE))}}}
+inv<-do.call(rbind,inventory);write.csv(inv,file.path(out,'output/00_raw_laboratory_element_inventory.csv'),row.names=FALSE)
+reg<-read.csv(file.path(out,'output/01_expanded_registry_188.csv'));vv<-unique(c(reg$variable[reg$class%in%c('Metals (blood)','Metals (urine)','Arsenic species (urine)','Mercury species (blood)','Essential trace elements (serum)','Iodine (urine)')],'LBXSCA','LBXSPH','LBXSNASI','LBXSKSI','LBXSCLSI'))
+audit<-do.call(rbind,lapply(vv,function(v){rr<-reg[reg$variable==v,];wt<-if(nrow(rr))rr$weight else'WTMEC2YR';ii<-a$age>=20&!is.na(a$group)&is.finite(a[[wt]])&a[[wt]]>0&is.finite(a[[v]]);ii[is.na(ii)]<-FALSE;data.frame(variable=v,label=if(nrow(rr))rr$label else inv$label[match(v,inv$variable)],role=if(nrow(rr))'Full biomarker screen'else'Clinical major mineral / electrolyte',matrix=if(nrow(rr))rr$specimen else'serum',weight=wt,n_paired_valid=sum(ii),n_discordant_available=sum(ii&!is.na(a$y)),n_fatty_overlap=sum(ii&is.finite(a$WTFAS2YR)&a$WTFAS2YR>0))}));write.csv(audit,file.path(out,'output/14_complete_element_coverage.csv'),row.names=FALSE)
+# Explicitly record proposed elements/iron-status markers that have no eligible 2011-2012 laboratory field.
+absent<-c('Serum magnesium','Serum chromium','Serum nickel','Serum cobalt','Serum manganese','Serum molybdenum','Ferritin','Soluble transferrin receptor','Transferrin saturation')
+write.csv(data.frame(candidate=absent,status='No corresponding field identified in all local 2011-2012 laboratory XPT dictionaries; not estimable in the paired-test cycle'),file.path(out,'output/15_unavailable_element_status.csv'),row.names=FALSE)
+cat('Scanned',nf,'laboratory XPT dictionaries;',nrow(inv),'candidate fields;',nrow(audit),'distinct included elemental/mineral indicators.\n');print(audit[audit$variable%in%c('LBXSIR','LBXSCU','LBXSSE','LBXSZN','URXUIO','LBXSCA','LBXSPH'),])

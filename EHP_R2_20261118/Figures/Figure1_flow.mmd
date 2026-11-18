@@ -1,0 +1,31 @@
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: Arial
+    fontSize: 18px
+    primaryColor: '#f5f8fa'
+    primaryTextColor: '#263746'
+    primaryBorderColor: '#7c919e'
+    lineColor: '#7c919e'
+    edgeLabelBackground: '#ffffff'
+  flowchart:
+    htmlLabels: false
+    curve: linear
+    rankSpacing: 35
+    nodeSpacing: 18
+    padding: 14
+---
+flowchart TB
+ A["NHANES 2011–2012<br/>9756 participants"]
+ B["Adult MEC domain<br/>n = 5319"]
+ C["Valid paired QFT / TST<br/>n = 4215<br/>Four-state host profiles"]
+ D["Discordant states<br/>n = 398<br/>188 biomarkers<br/>20 families"]
+ E["Fatty acid sample<br/>n = 1979<br/>30 analytes + 4 modules<br/>6392 exposure–lipid pairs"]
+ A -->|"Outside adult domain: 4437"| B
+ B -->|"QFT unavailable or indeterminate: 361"| Q["Valid QFT<br/>n = 4958"]
+ Q -->|"TST unavailable: 743"| C
+ C -->|"Concordant: 3817"| D
+ C -->|"Fatty acid weight absent: 2236"| E
+ classDef primary fill:#e8f1f7,stroke:#0072b2,stroke-width:1.5px
+ class D,E primary

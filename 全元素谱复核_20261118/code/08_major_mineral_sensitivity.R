@@ -1,0 +1,9 @@
+b<-'.';out<-file.path(b,'全元素谱复核_20261118');txt<-paste(readLines(file.path(out,'code/02_full_spectrum.R'),warn=FALSE),collapse='\n');eval(parse(text=strsplit(txt,'all<-list();counter<-0;started<-Sys.time()',fixed=TRUE)[[1]][1]))
+mineral<-reg[rep(which(reg$variable=='LBXSIR'),2),];mineral$variable<-c('LBXSCA','LBXSPH');mineral$label<-c('Serum calcium (mg/dL)','Serum phosphorus (mg/dL)');mineral$class<-'Clinical major minerals';mineral$panel_id<-'separate_clinical_mineral_sensitivity'
+result<-list();outcome<-list()
+for(i in 1:2){rr<-mineral[i,];ex<-getx(rr)
+ for(ly in c('individual','module'))for(v in if(ly=='individual')fa else mods)for(md in c('calibrated_joint','published_fatty_overlap_sensitivity'))result[[length(result)+1]]<-fitpair(rr,v,ly,md,ex)
+ d<-a;d$xx<-ex$x;cv<-cvfor(rr);m<-a$age>=20&!is.na(a$y)&is.finite(d$xx)&complete.cases(d[,cv]);m[is.na(m)]<-FALSE;d$.dom<-m;ii<-which(is.finite(a$WTMEC2YR)&a$WTMEC2YR>0);de<-svydesign(ids=~SDMVPSU,strata=~SDMVSTRA,weights=~WTMEC2YR,nest=TRUE,data=d[ii,]);dd<-subset(de,.dom);f<-svyglm(as.formula(paste('y~xx+',paste(cv,collapse='+'))),dd,family=quasibinomial());bb<-coef(f)['xx'];se<-sqrt(vcov(f)['xx','xx']);ww<-as.numeric(weights(dd));outcome[[i]]<-data.frame(variable=rr$variable,label=rr$label,n=nrow(dd$variables),events=sum(dd$variables$y),kish_ess=sum(ww)^2/sum(ww^2),OR=exp(bb),low=exp(bb-qt(.975,17)*se),high=exp(bb+qt(.975,17)*se),p=2*pt(-abs(bb/se),17),inference_df=17)
+}
+rr<-do.call(rbind,result);rr$q_separate_mineral_family<-NA
+for(md in unique(rr$mode))for(ly in unique(rr$layer)){ix<-which(rr$mode==md&rr$layer==ly);pp<-rr$p[ix];pp[rr$status[ix]!='ok'|!is.finite(pp)]<-1;rr$q_separate_mineral_family[ix]<-p.adjust(pp,'BH')};oo<-do.call(rbind,outcome);oo$q_2<-p.adjust(oo$p,'BH');write.csv(rr,file.path(out,'output/16_major_mineral_lipid_sensitivity.csv'),row.names=FALSE);write.csv(oo,file.path(out,'output/17_major_mineral_outcome_sensitivity.csv'),row.names=FALSE);print(oo)
